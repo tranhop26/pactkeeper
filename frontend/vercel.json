@@ -1,0 +1,10 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "NEXT_PUBLIC_PACTKEEPER_CONTRACT_ADDRESS": "0xfDee7742cf23331a1Ad3add09eEAa929c32C0ae7",
+    "NEXT_PUBLIC_GENLAYER_RPC_URL": "https://studio.genlayer.com/api",
+    "NEXT_PUBLIC_CHAIN_ID": "61999"
+  }
+}
