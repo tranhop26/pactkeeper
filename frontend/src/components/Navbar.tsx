@@ -71,7 +71,7 @@ export default function Navbar() {
                   className="btn btn-gold btn-sm"
                   onClick={() => setShowConnect(true)}
                 >
-                  🔑 Connect
+                  🦊 Connect
                 </button>
               )}
 

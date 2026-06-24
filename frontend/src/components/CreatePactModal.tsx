@@ -1,9 +1,8 @@
 'use client';
 import { useState } from 'react';
+import { parseEther, isAddress } from 'viem';
 import { useCreatePact } from '@/hooks/useContracts';
-
-// Demo account — replace with wallet connect in production
-const DEMO_ACCOUNT = '0x0000000000000000000000000000000000000001' as `0x${string}`;
+import { useWallet } from '@/context/WalletContext';
 
 const DEMO_BENEFICIARY = '0x000000000000000000000000000000000000dEaD';
 
@@ -29,6 +28,7 @@ interface Props {
 
 export default function CreatePactModal({ onClose, onSuccess }: Props) {
   const { createPact, loading, error } = useCreatePact();
+  const { address: myAddress } = useWallet();
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [promise, setPromise] = useState('');
@@ -43,11 +43,22 @@ export default function CreatePactModal({ onClose, onSuccess }: Props) {
   };
 
   const handleSubmit = async () => {
-    const stake = Math.round(parseFloat(stakeGLT) * 1_000_000);
-    if (isNaN(stake) || stake <= 0) { alert('Stake must be > 0'); return; }
+    // Fix #1: use parseEther for 18-decimal GEN
+    let stakeWei: bigint;
+    try {
+      stakeWei = parseEther(stakeGLT);
+      if (stakeWei <= 0n) throw new Error();
+    } catch { alert('Stake must be a valid number > 0'); return; }
+
     if (promise.trim().length < 10) { alert('Promise is too short'); return; }
     if (criteria.trim().length < 10) { alert('Success criteria is too short'); return; }
-    if (!beneficiary.startsWith('0x') || beneficiary.length < 20) { alert('Invalid beneficiary address'); return; }
+
+    // Fix #3: proper EVM address validation
+    if (!isAddress(beneficiary)) { alert('Invalid beneficiary address (must be a valid 0x… EVM address)'); return; }
+    if (myAddress && beneficiary.toLowerCase() === myAddress.toLowerCase()) {
+      alert('Beneficiary cannot be your own address'); return;
+    }
+
     const days = parseInt(deadlineDays);
     if (isNaN(days) || days < 1) { alert('Deadline must be at least 1 day'); return; }
 
@@ -58,7 +69,7 @@ export default function CreatePactModal({ onClose, onSuccess }: Props) {
       criteria: criteria.trim(),
       beneficiary,
       deadlineUnix,
-      stakeWei: BigInt(stake),
+      stakeWei,
     });
 
     if (result.success) onSuccess();

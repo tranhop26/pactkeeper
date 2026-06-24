@@ -2,24 +2,26 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
-import { usePact, useSubmitEvidence, useSettle, useClaimExpired, useWithdraw } from '@/hooks/useContracts';
+import { usePact, useSubmitEvidence, useSettle, useClaimExpired, useWithdraw, useWithdrawable } from '@/hooks/useContracts';
+import { useWallet } from '@/context/WalletContext';
 import {
   PACT_STATUS, statusLabel, statusClass,
   formatWei, formatDeadline, deadlinePassed, shortAddr,
 } from '@/lib/genlayer';
 
-const DEMO_ACCOUNT = '0x0000000000000000000000000000000000000001';
-
 export default function PactDetailPage() {
   const params = useParams();
   const router = useRouter();
   const pactId = parseInt(params.id as string);
+  const { address: myAddress } = useWallet();
 
   const { pact, loading, error, refetch } = usePact(pactId);
   const { submitEvidence, loading: submitting } = useSubmitEvidence();
   const { settle, loading: settling } = useSettle();
   const { claimExpired, loading: expiring } = useClaimExpired();
   const { withdraw, loading: withdrawing } = useWithdraw();
+  // Fix #4: show real withdrawable balance
+  const withdrawable = useWithdrawable(myAddress ?? '');
 
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [activeTab, setActiveTab] = useState<'evidence' | 'settle' | 'expired'>('evidence');
@@ -199,15 +201,28 @@ export default function PactDetailPage() {
                   <div className="verdict-reason">💭 {pact.reason}</div>
                 )}
 
-                <button
-                  className="btn btn-gold"
-                  style={{ marginTop: 16, width: '100%', justifyContent: 'center' }}
-                  onClick={handleWithdraw}
-                  disabled={withdrawing}
-                  id="btn-withdraw"
-                >
-                  {withdrawing ? <><span className="spinner-sm" /> Withdrawing…</> : '💰 Withdraw My Balance'}
-                </button>
+                {/* Fix #4: single withdraw button with real balance */}
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, textAlign: 'center' }}>
+                    Your withdrawable balance:
+                    <span style={{ color: 'var(--gold-400)', fontWeight: 700, marginLeft: 6 }}>
+                      {myAddress ? formatWei(withdrawable) : 'Connect wallet to check'}
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn-gold"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={handleWithdraw}
+                    disabled={withdrawing || withdrawable === 0n || !myAddress}
+                    id="btn-withdraw"
+                  >
+                    {withdrawing
+                      ? <><span className="spinner-sm" /> Withdrawing…</>
+                      : withdrawable === 0n
+                        ? '💰 No Balance to Withdraw'
+                        : `💰 Withdraw ${formatWei(withdrawable)}`}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -354,26 +369,6 @@ export default function PactDetailPage() {
               </div>
             )}
 
-            {/* Settled: withdraw panel */}
-            {isSettled && (
-              <div className="card">
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12 }}>💰 Withdraw Balance</div>
-                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.65 }}>
-                  {pact.status === PACT_STATUS.KEPT
-                    ? 'Your stake has been returned to your withdrawable balance.'
-                    : 'The stake was sent to the beneficiary\'s withdrawable balance.'}
-                </div>
-                <button
-                  className="btn btn-gold"
-                  style={{ width: '100%', justifyContent: 'center' }}
-                  onClick={handleWithdraw}
-                  disabled={withdrawing}
-                  id="btn-withdraw-side"
-                >
-                  {withdrawing ? <><span className="spinner-sm" /> Withdrawing…</> : '💰 Withdraw'}
-                </button>
-              </div>
-            )}
 
             {/* Owner / Beneficiary info */}
             <div className="card" style={{ marginTop: 16 }}>

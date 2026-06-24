@@ -1,75 +1,81 @@
 'use client';
-import { useState } from 'react';
 import { useWallet } from '@/context/WalletContext';
 
 export default function ConnectModal({ onClose }: { onClose: () => void }) {
-  const { connect } = useWallet();
-  const [key, setKey] = useState('');
-  const [error, setError] = useState('');
+  const { connect, isConnecting, error } = useWallet();
 
-  const handleConnect = () => {
-    setError('');
-    try {
-      if (!key.trim()) { setError('Please enter your private key'); return; }
-      connect(key.trim());
-      onClose();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Invalid private key');
-    }
+  const handleConnect = async () => {
+    await connect();
+    // Close only if connected successfully (address will be set)
+    onClose();
   };
 
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal" style={{ maxWidth: 460 }} role="dialog" aria-labelledby="connect-title">
+      <div className="modal" style={{ maxWidth: 420 }} role="dialog" aria-labelledby="connect-title">
         <div className="modal-header">
-          <h2 className="modal-title" id="connect-title">🔑 Connect Wallet</h2>
+          <h2 className="modal-title" id="connect-title">🦊 Connect Wallet</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        {/* Warning */}
+        {/* MetaMask info */}
         <div style={{
-          background: 'rgba(251,191,36,0.08)',
-          border: '1px solid var(--border-gold)',
-          borderRadius: 'var(--radius-md)',
-          padding: '12px 16px',
-          marginBottom: 20,
-          fontSize: 13,
-          color: 'var(--text-secondary)',
-          lineHeight: 1.7,
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '24px 0', gap: 16, textAlign: 'center',
         }}>
-          <div style={{ fontWeight: 700, marginBottom: 4, color: 'var(--gold-400)' }}>⚠️ Studionet only</div>
-          Your private key stays <strong>100% in your browser</strong> (sessionStorage).
-          It is never sent to any server. Use a <strong>testnet-only</strong> account — never your mainnet wallet.
-        </div>
-
-        <div className="form-group">
-          <label className="form-label" htmlFor="input-private-key">Private Key</label>
-          <input
-            id="input-private-key"
-            type="password"
-            className="form-input"
-            placeholder="0xac0974bec39a17e36ba4a..."
-            value={key}
-            onChange={e => setKey(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleConnect()}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}
-          />
-          <div className="form-hint">
-            Export from GenLayer Studio → your account → Export Private Key
+          <div style={{ fontSize: 56 }}>🦊</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>
+            Connect with MetaMask
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: 320 }}>
+            PactKeeper will automatically add <strong style={{ color: 'var(--gold-400)' }}>GenLayer Studionet</strong> to
+            your MetaMask. Your account on studionet needs GLT to stake.
           </div>
         </div>
 
-        {error && <div className="form-error" style={{ marginBottom: 16 }}>❌ {error}</div>}
+        <div style={{
+          background: 'var(--bg-input)', borderRadius: 'var(--radius-md)',
+          padding: '12px 16px', marginBottom: 20,
+          display: 'flex', flexDirection: 'column', gap: 6,
+        }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-muted)', fontWeight: 600 }}>
+            Network Details
+          </div>
+          {[
+            ['Network', 'GenLayer Studionet'],
+            ['Chain ID', '61999'],
+            ['RPC', 'studio.genlayer.com/api'],
+            ['Symbol', 'GLT'],
+          ].map(([k, v]) => (
+            <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+              <span style={{ color: 'var(--text-muted)' }}>{k}</span>
+              <span style={{ color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        {error && (
+          <div className="form-error" style={{ marginBottom: 16 }}>
+            {error.includes('MetaMask not found')
+              ? <>❌ MetaMask not installed. <a href="https://metamask.io" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--gold-400)' }}>Download here →</a></>
+              : `❌ ${error}`
+            }
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
           <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
           <button
-            id="btn-do-connect"
+            id="btn-metamask-connect"
             className="btn btn-gold"
             style={{ justifyContent: 'center' }}
             onClick={handleConnect}
+            disabled={isConnecting}
           >
-            🔑 Connect
+            {isConnecting
+              ? <><span className="spinner-sm" /> Connecting…</>
+              : '🦊 Connect MetaMask'
+            }
           </button>
         </div>
       </div>

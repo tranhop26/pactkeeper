@@ -4,22 +4,15 @@
  */
 
 import { createClient, chains } from 'genlayer-js';
-import { privateKeyToAccount } from 'viem/accounts';
+import { formatEther } from 'viem';
 
 export const CONTRACT_ADDRESS = (
   process.env.NEXT_PUBLIC_PACTKEEPER_CONTRACT_ADDRESS ?? ''
 ) as `0x${string}`;
 
-// Studionet demo account (pre-funded test key — studionet only, no real funds)
-// In production replace with wallet connect (e.g. wagmi + RainbowKit)
-const STUDIONET_TEST_KEY =
-  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
-export const demoAccount = privateKeyToAccount(STUDIONET_TEST_KEY);
-
-export const glClient = createClient({
-  chain: chains.studionet,
-  account: demoAccount,
-});
+// Read-only client — no account needed for reads.
+// Write calls go through WalletContext (MetaMask signer).
+export const glClient = createClient({ chain: chains.studionet });
 
 // Pact status enum (matches contract)
 export const PACT_STATUS = {
@@ -37,8 +30,8 @@ export interface Pact {
   beneficiary: string;
   promise: string;
   criteria: string;
-  stake: number;       // wei
-  deadline: number;    // unix seconds (0 = no deadline)
+  stake: number;       // wei (18 decimals, GEN)
+  deadline: number;    // unix seconds
   status: PactStatus;
   evidence_url: string;
   reason: string;
@@ -70,11 +63,15 @@ export function shortAddr(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+// Fix #1: GEN has 18 decimals — use viem's formatEther
 export function formatWei(wei: number | bigint): string {
-  const n = typeof wei === 'bigint' ? Number(wei) : wei;
-  if (n === 0) return '0 GLT';
-  if (n < 1_000_000) return `${n} wei`;
-  return `${(n / 1_000_000).toFixed(4)} GLT`;
+  const n = typeof wei === 'bigint' ? wei : BigInt(Math.round(Number(wei)));
+  if (n === 0n) return '0 GEN';
+  const formatted = formatEther(n);
+  // Trim trailing zeros but keep at least 4 significant decimals
+  const num = parseFloat(formatted);
+  if (num < 0.0001) return `${n.toString()} wei`;
+  return `${num.toFixed(4).replace(/\.?0+$/, '')} GEN`;
 }
 
 export function formatDeadline(ts: number): string {
