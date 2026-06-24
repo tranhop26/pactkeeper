@@ -1,12 +1,13 @@
 /**
  * PactKeeper — contract hooks
- * All reads use glClient.readContract, all writes use glClient.writeContract.
- * No mocks, no hardcoded data.
+ * Reads use glClient (read-only, no account needed).
+ * Writes use the wallet client from WalletContext (requires connected account).
  */
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { glClient, CONTRACT_ADDRESS, Pact } from '@/lib/genlayer';
+import { useWallet } from '@/context/WalletContext';
 
 // ─── Read: single pact ──────────────────────────────────────────────────────
 
@@ -85,7 +86,7 @@ export function useTotalPacts() {
   return { total, loading, error, refetch };
 }
 
-// ─── Read: all pacts (paginated by total) ───────────────────────────────────
+// ─── Read: all pacts ─────────────────────────────────────────────────────────
 
 export function useAllPacts() {
   const { total, loading: countLoading, error: countError, refetch: refetchCount } = useTotalPacts();
@@ -101,7 +102,6 @@ export function useAllPacts() {
     try {
       setLoading(true);
       setError(null);
-      // Fetch at most the last 50 pacts
       const start = Math.max(0, total - 50);
       const fetches = [];
       for (let i = start; i < total; i++) {
@@ -115,7 +115,7 @@ export function useAllPacts() {
         );
       }
       const results = (await Promise.all(fetches)).filter(Boolean) as Pact[];
-      setPacts(results.reverse()); // newest first
+      setPacts(results.reverse());
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -123,9 +123,7 @@ export function useAllPacts() {
     }
   }, [total]);
 
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
+  useEffect(() => { refetch(); }, [refetch]);
 
   const refetchAll = useCallback(async () => {
     await refetchCount();
@@ -157,14 +155,20 @@ export function useWithdrawable(address: string) {
   return amount;
 }
 
-// ─── Write hooks ─────────────────────────────────────────────────────────────
+// ─── Write helper ─────────────────────────────────────────────────────────────
 
 function useWriteHook() {
+  const { client: walletClient, address } = useWallet();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
   async function execute(fn: () => Promise<unknown>) {
+    if (!walletClient || !address) {
+      const msg = 'Wallet not connected. Click "Connect" in the top-right corner.';
+      setError(msg);
+      return { success: false, error: msg };
+    }
     setLoading(true);
     setError(null);
     setTxHash(null);
@@ -181,12 +185,13 @@ function useWriteHook() {
     }
   }
 
-  return { loading, error, txHash, execute };
+  return { loading, error, txHash, execute, walletClient };
 }
 
-// create_pact(promise, criteria, beneficiary_addr, deadline_unix) payable
+// ─── Write: create_pact ───────────────────────────────────────────────────────
+
 export function useCreatePact() {
-  const { loading, error, execute } = useWriteHook();
+  const { loading, error, execute, walletClient } = useWriteHook();
 
   const createPact = useCallback(async (params: {
     promise: string;
@@ -196,43 +201,45 @@ export function useCreatePact() {
     stakeWei: bigint;
   }) => {
     return execute(() =>
-      glClient.writeContract({
+      walletClient!.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_pact',
         args: [params.promise, params.criteria, params.beneficiary, BigInt(params.deadlineUnix)],
         value: params.stakeWei,
       })
     );
-  }, [execute]);
+  }, [execute, walletClient]);
 
   return { createPact, loading, error };
 }
 
-// submit_evidence(pact_id, url)
+// ─── Write: submit_evidence ──────────────────────────────────────────────────
+
 export function useSubmitEvidence() {
-  const { loading, error, execute } = useWriteHook();
+  const { loading, error, execute, walletClient } = useWriteHook();
 
   const submitEvidence = useCallback(async (pactId: number, url: string) => {
     return execute(() =>
-      glClient.writeContract({
+      walletClient!.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'submit_evidence',
         args: [BigInt(pactId), url],
         value: 0n,
       })
     );
-  }, [execute]);
+  }, [execute, walletClient]);
 
   return { submitEvidence, loading, error };
 }
 
-// settle(pact_id) — triggers AI judgment
+// ─── Write: settle ───────────────────────────────────────────────────────────
+
 export function useSettle() {
-  const { loading, error, execute } = useWriteHook();
+  const { loading, error, execute, walletClient } = useWriteHook();
 
   const settle = useCallback(async (pactId: number) => {
     return execute(() =>
-      glClient.writeContract({
+      walletClient!.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'settle',
         args: [BigInt(pactId)],
@@ -240,43 +247,45 @@ export function useSettle() {
         consensusMaxRotations: 5,
       })
     );
-  }, [execute]);
+  }, [execute, walletClient]);
 
   return { settle, loading, error };
 }
 
-// claim_expired(pact_id)
+// ─── Write: claim_expired ────────────────────────────────────────────────────
+
 export function useClaimExpired() {
-  const { loading, error, execute } = useWriteHook();
+  const { loading, error, execute, walletClient } = useWriteHook();
 
   const claimExpired = useCallback(async (pactId: number) => {
     return execute(() =>
-      glClient.writeContract({
+      walletClient!.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'claim_expired',
         args: [BigInt(pactId)],
         value: 0n,
       })
     );
-  }, [execute]);
+  }, [execute, walletClient]);
 
   return { claimExpired, loading, error };
 }
 
-// withdraw()
+// ─── Write: withdraw ─────────────────────────────────────────────────────────
+
 export function useWithdraw() {
-  const { loading, error, execute } = useWriteHook();
+  const { loading, error, execute, walletClient } = useWriteHook();
 
   const withdraw = useCallback(async () => {
     return execute(() =>
-      glClient.writeContract({
+      walletClient!.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'withdraw',
         args: [],
         value: 0n,
       })
     );
-  }, [execute]);
+  }, [execute, walletClient]);
 
   return { withdraw, loading, error };
 }
