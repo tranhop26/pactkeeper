@@ -4,12 +4,22 @@
  */
 
 import { createClient, chains } from 'genlayer-js';
+import { privateKeyToAccount } from 'viem/accounts';
 
 export const CONTRACT_ADDRESS = (
   process.env.NEXT_PUBLIC_PACTKEEPER_CONTRACT_ADDRESS ?? ''
 ) as `0x${string}`;
 
-export const glClient = createClient({ chain: chains.studionet });
+// Studionet demo account (pre-funded test key — studionet only, no real funds)
+// In production replace with wallet connect (e.g. wagmi + RainbowKit)
+const STUDIONET_TEST_KEY =
+  '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+export const demoAccount = privateKeyToAccount(STUDIONET_TEST_KEY);
+
+export const glClient = createClient({
+  chain: chains.studionet,
+  account: demoAccount,
+});
 
 // Pact status enum (matches contract)
 export const PACT_STATUS = {

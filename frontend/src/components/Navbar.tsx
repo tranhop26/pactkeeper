@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { CONTRACT_ADDRESS } from '@/lib/genlayer';
+import { CONTRACT_ADDRESS, demoAccount, shortAddr } from '@/lib/genlayer';
 
 export default function Navbar() {
   return (
@@ -14,7 +14,7 @@ export default function Navbar() {
 
           <div className="navbar-actions">
             <span className="navbar-badge">
-              {CONTRACT_ADDRESS ? `${CONTRACT_ADDRESS.slice(0, 6)}…${CONTRACT_ADDRESS.slice(-4)}` : 'not connected'}
+              👤 {shortAddr(demoAccount.address)}
             </span>
             <span className="navbar-badge" style={{ color: 'var(--kept-color)', borderColor: 'var(--kept-border)' }}>
               ● Studionet
