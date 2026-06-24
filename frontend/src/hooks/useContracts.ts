@@ -204,8 +204,8 @@ export function useCreatePact() {
       walletClient!.writeContract({
         address: CONTRACT_ADDRESS,
         functionName: 'create_pact',
-        args: [params.promise, params.criteria, params.beneficiary, BigInt(params.deadlineUnix)],
-        value: params.stakeWei,
+        args: [params.promise, params.criteria, params.beneficiary, BigInt(params.deadlineUnix), params.stakeWei],
+        value: BigInt(0),
       })
     );
   }, [execute, walletClient]);
