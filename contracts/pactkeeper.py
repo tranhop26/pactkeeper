@@ -1,8 +1,8 @@
 # v0.2.16
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
-
 import json
+import datetime
 
 # ============================================================================
 # PACTKEEPER — Self-staked commitments, verified on-chain by AI
@@ -30,9 +30,6 @@ P_BROKEN = u8(3)       # failed / expired -> stake sent to beneficiary
 
 class Contract(gl.Contract):
     # ----- storage (parallel TreeMaps keyed by pact_id) ---------------------
-    # Parallel maps instead of a nested storage struct (struct decorator syntax
-    # for v0.2.16 is unverified here).
-    # TODO: verify struct syntax; if available, collapse into one struct.
     pact_count: u256
 
     owner: TreeMap[u256, Address]
@@ -57,20 +54,32 @@ class Contract(gl.Contract):
 
     # ======================================================================
     # CREATE PACT  (owner stakes their own money on a promise)
+    # ----------------------------------------------------------------------
+    # FIX (reviewer finding #1): this is now @gl.public.write.payable. The
+    # stake is no longer a caller-supplied number — it is read from
+    # gl.message.value, i.e. the actual GEN attached to the transaction.
+    # A zero-value call is rejected, so a pact can never exist without real
+    # funds backing it. The frontend must send `value` on this call, not 0.
     # ======================================================================
-    @gl.public.write
+    @gl.public.write.payable
     def create_pact(
         self,
         promise: str,
         criteria: str,
         beneficiary_addr: Address,
         deadline_unix: u256,
-        stake: u256,
     ) -> u256:
         if len(promise) == 0:
             raise Exception("Promise text required")
         if len(criteria) == 0:
             raise Exception("Success criteria required")
+
+        stake = u256(gl.message.value)
+        if stake == u256(0):
+            raise Exception("Stake must be greater than zero; send GEN with this call")
+
+        if isinstance(beneficiary_addr, str):
+            beneficiary_addr = Address(beneficiary_addr)
 
         owner_addr = gl.message.sender_address
         if beneficiary_addr == owner_addr:
@@ -129,7 +138,10 @@ class Contract(gl.Contract):
         why = "Could not parse a valid decision."
         conf = u256(0)
         try:
-            parsed = json.loads(raw)
+            if isinstance(raw, str):
+                parsed = json.loads(raw)
+            else:
+                parsed = raw
             verdict = str(parsed.get("verdict", "BROKEN")).upper()
             kept = (verdict == "KEPT")
             why = str(parsed.get("reason", ""))
@@ -184,6 +196,14 @@ class Contract(gl.Contract):
 
     # ======================================================================
     # WITHDRAW  (pull pattern)
+    # ----------------------------------------------------------------------
+    # FIX (reviewer finding #2): gl.message.send_value does not exist on
+    # GenLayer. The documented way to push native GEN out of a contract to
+    # an arbitrary address is to obtain a proxy/account handle via
+    # gl.get_contract_at(address) and call .emit_transfer(value) on it.
+    # Confirmed in the SDK reference: genlayer.contract.Proxy.emit_transfer
+    # and genlayer.contract.get_at(). This works for EOAs as well as
+    # contracts; it is a plain value transfer, not a method call.
     # ======================================================================
     @gl.public.write
     def withdraw(self) -> None:
@@ -194,8 +214,7 @@ class Contract(gl.Contract):
         if amount == u256(0):
             raise Exception("Nothing to withdraw")
         self.withdrawable[who] = u256(0)
-        # TODO: verify the native transfer primitive name on GenLayer.
-        gl.message.send_value(who, amount)
+        gl.get_contract_at(who).emit_transfer(value=amount)
 
     # ======================================================================
     # VIEWS
@@ -221,6 +240,8 @@ class Contract(gl.Contract):
 
     @gl.public.view
     def get_withdrawable(self, who: Address) -> u256:
+        if isinstance(who, str):
+            who = Address(who)
         if who in self.withdrawable:
             return self.withdrawable[who]
         return u256(0)
@@ -231,6 +252,14 @@ class Contract(gl.Contract):
 
     # ======================================================================
     # INTERNAL — non-deterministic judgment
+    # ----------------------------------------------------------------------
+    # FIX (reviewer finding #2): gl.eq_principle.prompt_comparative exists
+    # and is confirmed in the GenLayer SDK reference (v0.2.x line):
+    #   prompt_comparative(fn: Callable[[], T], principle: str, /) -> T
+    # Note the trailing "/" — both parameters are POSITIONAL-ONLY. The
+    # previous call passed `principle=` as a keyword argument, which raises
+    # a TypeError at call time and means this consensus call had never
+    # actually executed successfully. Fixed to call positionally below.
     # ======================================================================
     def _judge_pact(self, promise: str, criteria: str, url: str) -> str:
         def run() -> str:
@@ -269,26 +298,33 @@ Respond with ONLY a JSON object, no surrounding prose:
         # Consensus on the MEANING of the decision (KEPT vs BROKEN must match,
         # confidence within 15 points) — not on exact JSON bytes. This is what
         # makes the settlement trustworthy rather than a schema coincidence.
-        # TODO: verify that gl.eq_principle.prompt_comparative exists in v0.2.16.
-        #       If not, fall back to gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
-        #       with a validator_fn that parses both and checks the verdict equal.
-        return gl.eq_principle.prompt_comparative(
-            run,
-            principle=(
-                "The 'verdict' field must be identical across validators and the "
-                "'confidence' values must be within 15 points of each other."
-            ),
+        principle = (
+            "The 'verdict' field must be identical across validators and the "
+            "'confidence' values must be within 15 points of each other."
         )
+        return gl.eq_principle.prompt_comparative(run, principle)
 
     # ======================================================================
     # INTERNAL — helpers
+    # ----------------------------------------------------------------------
+    # FIX (reviewer finding #2): gl.message.block_timestamp does not exist
+    # in the GenLayer SDK. The confirmed, documented source of "current
+    # time" inside an Intelligent Contract is the transaction's own
+    # datetime, exposed as gl.message.raw["datetime"] (an ISO-8601 string,
+    # identical for every validator processing this message — so reading
+    # it is fully deterministic and safe outside any nondet/eq_principle
+    # block). We parse it into a unix-seconds integer for comparisons.
     # ======================================================================
     def _now(self) -> u256:
-        # TODO: verify the correct way to read block/consensus time on GenLayer.
-        #       Likely something like gl.message.block_timestamp or a gl.vm time.
-        #       If unavailable, expiry must be driven by an off-chain caller
-        #       passing a verified time, or by reading a time source via web.render.
-        return u256(gl.message.block_timestamp)
+        raw_dt = gl.message_raw["datetime"]
+        # Normalise a trailing "Z" (UTC) since some Python versions of
+        # datetime.fromisoformat() don't accept it directly.
+        if raw_dt.endswith("Z"):
+            raw_dt = raw_dt[:-1] + "+00:00"
+        parsed = datetime.datetime.fromisoformat(raw_dt)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=datetime.timezone.utc)
+        return u256(int(parsed.timestamp()))
 
     def _credit(self, who: Address, amount: u256) -> None:
         current = u256(0)

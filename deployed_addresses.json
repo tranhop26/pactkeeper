@@ -1,9 +1,9 @@
 {
-  "deployed_at": "2026-06-24T00:00:00.000Z",
+  "deployed_at": "2026-06-30T10:26:49.000Z",
   "network": "studionet",
   "chain_id": 61999,
   "rpc": "https://studio.genlayer.com/api",
   "contracts": {
-    "pactkeeper": "0xfDee7742cf23331a1Ad3add09eEAa929c32C0ae7"
+    "pactkeeper": "0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57"
   }
 }

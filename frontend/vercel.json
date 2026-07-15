@@ -3,7 +3,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "env": {
-    "NEXT_PUBLIC_PACTKEEPER_CONTRACT_ADDRESS": "0xfDee7742cf23331a1Ad3add09eEAa929c32C0ae7",
+    "NEXT_PUBLIC_PACTKEEPER_CONTRACT_ADDRESS": "0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57",
     "NEXT_PUBLIC_GENLAYER_RPC_URL": "https://studio.genlayer.com/api",
     "NEXT_PUBLIC_CHAIN_ID": "61999"
   }
