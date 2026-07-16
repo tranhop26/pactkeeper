@@ -69,7 +69,7 @@ Here are the transaction hashes showing a completed end-to-end execution of a pa
 ---
 
 ## Why GenLayer?
-PactKeeper belongs on GenLayer because it cannot run on standard deterministic blockchains. Traditional blockchains are deterministic-only and cannot verify real-world commitments. PactKeeper uses GenLayer's non-deterministic web rendering and LLM execution to evaluate evidence and reach consensus. This subjective judgment is bound directly to transaction execution (bindPolicy / policyBoundToExecution / blockedByPolicy / rejected this intent / latest_policy / latest_state / persist).
+PactKeeper belongs on GenLayer because it cannot run on standard deterministic blockchains. Traditional blockchains are deterministic-only and cannot verify real-world commitments. PactKeeper uses GenLayer's non-deterministic web rendering and LLM execution to evaluate evidence and reach consensus on whether a promise was kept. This subjective judgment is resolved via validator consensus and enforced directly on-chain.
 
 ---
 
