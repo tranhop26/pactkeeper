@@ -257,7 +257,7 @@ class Contract(gl.Contract):
     # ----------------------------------------------------------------------
     # ======================================================================
     def _judge_pact(self, promise: str, criteria: str, url: str) -> str:
-        def leader_fn() -> str:
+        def run() -> str:
             # Read the evidence page live from the web, on-chain.
             evidence = gl.nondet.web.render(url, mode="text")
 
@@ -288,33 +288,16 @@ Respond with ONLY a JSON object, no surrounding prose:
 {{"verdict": "KEPT" | "BROKEN",
   "confidence": <integer 0-100>,
   "reason": "<one or two sentence explanation>"}}"""
-            res = gl.nondet.exec_prompt(task, response_format="json")
-            if not isinstance(res, str):
-                return json.dumps(res)
-            return res
+            return gl.nondet.exec_prompt(task, response_format="json")
 
-        def validator_fn(leader_result) -> bool:
-            if not isinstance(leader_result, gl.vm.Return):
-                return False
-            try:
-                raw = leader_result.value
-                if isinstance(raw, str):
-                    data = json.loads(raw)
-                elif isinstance(raw, dict):
-                    data = raw
-                else:
-                    return False
-                verdict = data.get("verdict", "")
-                confidence = data.get("confidence")
-                if verdict not in ("KEPT", "BROKEN"):
-                    return False
-                if not isinstance(confidence, (int, float)):
-                    return False
-                return True
-            except Exception:
-                return False
-
-        return gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
+        # Consensus on the MEANING of the decision (KEPT vs BROKEN must match,
+        # confidence within 15 points) — not on exact JSON bytes. This is what
+        # makes the settlement trustworthy rather than a schema coincidence.
+        principle = (
+            "The 'verdict' field must be identical across validators and the "
+            "'confidence' values must be within 15 points of each other."
+        )
+        return gl.eq_principle.prompt_comparative(run, principle)
 
     # ======================================================================
     # INTERNAL — helpers
