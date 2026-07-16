@@ -2,7 +2,7 @@ import pytest
 
 @pytest.fixture
 def scratch_contract(genlayer_test):
-    return genlayer_test.deploy("contracts/scratch_helper.py")
+    return genlayer_test.deploy("scratch/scratch_helper.py")
 
 def test_message_attributes(scratch_contract):
     r = scratch_contract.functions.get_message_attr().return_value
