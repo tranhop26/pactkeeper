@@ -4,8 +4,6 @@ from genlayer import *
 import json
 import datetime
 
-# policyBoundToExecution, blockedByPolicy, bindPolicy, rejected this intent, persist, latest_policy, latest_state
-
 # ============================================================================
 # PACTKEEPER — Self-staked commitments, verified on-chain by AI
 # ----------------------------------------------------------------------------
