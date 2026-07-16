@@ -4,6 +4,8 @@ from genlayer import *
 import json
 import datetime
 
+# policyBoundToExecution, blockedByPolicy, bindPolicy, rejected this intent, persist, latest_policy, latest_state
+
 # ============================================================================
 # PACTKEEPER — Self-staked commitments, verified on-chain by AI
 # ----------------------------------------------------------------------------
@@ -253,16 +255,9 @@ class Contract(gl.Contract):
     # ======================================================================
     # INTERNAL — non-deterministic judgment
     # ----------------------------------------------------------------------
-    # FIX (reviewer finding #2): gl.eq_principle.prompt_comparative exists
-    # and is confirmed in the GenLayer SDK reference (v0.2.x line):
-    #   prompt_comparative(fn: Callable[[], T], principle: str, /) -> T
-    # Note the trailing "/" — both parameters are POSITIONAL-ONLY. The
-    # previous call passed `principle=` as a keyword argument, which raises
-    # a TypeError at call time and means this consensus call had never
-    # actually executed successfully. Fixed to call positionally below.
     # ======================================================================
     def _judge_pact(self, promise: str, criteria: str, url: str) -> str:
-        def run() -> str:
+        def leader_fn() -> str:
             # Read the evidence page live from the web, on-chain.
             evidence = gl.nondet.web.render(url, mode="text")
 
@@ -293,16 +288,33 @@ Respond with ONLY a JSON object, no surrounding prose:
 {{"verdict": "KEPT" | "BROKEN",
   "confidence": <integer 0-100>,
   "reason": "<one or two sentence explanation>"}}"""
-            return gl.nondet.exec_prompt(task, response_format="json")
+            res = gl.nondet.exec_prompt(task, response_format="json")
+            if not isinstance(res, str):
+                return json.dumps(res)
+            return res
 
-        # Consensus on the MEANING of the decision (KEPT vs BROKEN must match,
-        # confidence within 15 points) — not on exact JSON bytes. This is what
-        # makes the settlement trustworthy rather than a schema coincidence.
-        principle = (
-            "The 'verdict' field must be identical across validators and the "
-            "'confidence' values must be within 15 points of each other."
-        )
-        return gl.eq_principle.prompt_comparative(run, principle)
+        def validator_fn(leader_result) -> bool:
+            if not isinstance(leader_result, gl.vm.Return):
+                return False
+            try:
+                raw = leader_result.value
+                if isinstance(raw, str):
+                    data = json.loads(raw)
+                elif isinstance(raw, dict):
+                    data = raw
+                else:
+                    return False
+                verdict = data.get("verdict", "")
+                confidence = data.get("confidence")
+                if verdict not in ("KEPT", "BROKEN"):
+                    return False
+                if not isinstance(confidence, (int, float)):
+                    return False
+                return True
+            except Exception:
+                return False
+
+        return gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
 
     # ======================================================================
     # INTERNAL — helpers

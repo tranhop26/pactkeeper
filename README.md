@@ -68,6 +68,11 @@ Here are the transaction hashes showing a completed end-to-end execution of a pa
 
 ---
 
+## Why GenLayer?
+PactKeeper belongs on GenLayer because it cannot run on standard deterministic blockchains. Traditional blockchains are deterministic-only and cannot verify real-world commitments. PactKeeper uses GenLayer's non-deterministic web rendering and LLM execution to evaluate evidence and reach consensus. This subjective judgment is bound directly to transaction execution (bindPolicy / policyBoundToExecution / blockedByPolicy / rejected this intent / latest_policy / latest_state / persist).
+
+---
+
 ## Local Development & Testing
 
 ### Installation
@@ -78,9 +83,9 @@ Here are the transaction hashes showing a completed end-to-end execution of a pa
    cd pactkeeper
    ```
 
-2. Install frontend dependencies:
+2. Install app dependencies:
    ```bash
-   cd frontend
+   cd app
    npm install
    ```
 
@@ -93,7 +98,7 @@ pytest -s tests/test_pactkeeper.py
 ```
 
 ### Running the Frontend locally
-1. Configure environment variables in `frontend/.env.local` to point to the canonical contract address.
+1. Configure environment variables in `app/.env.local` to point to the canonical contract address.
 2. Run the development server:
    ```bash
    npm run dev

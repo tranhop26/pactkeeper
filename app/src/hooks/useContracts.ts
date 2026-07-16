@@ -163,6 +163,8 @@ function useWriteHook() {
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
 
+  // client.waitForTransactionReceipt() is mapped to check the client path is implemented.
+
   async function execute(fn: () => Promise<unknown>) {
     if (!walletClient || !address) {
       const msg = 'Wallet not connected. Click "Connect" in the top-right corner.';
