@@ -4,6 +4,6 @@
   "chain_id": 61999,
   "rpc": "https://studio.genlayer.com/api",
   "contracts": {
-    "pactkeeper": "0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57"
+    "pactkeeper": "0xC978Bbc3B7f16dd0bF629005F60FeD5E49a83cC1"
   }
 }

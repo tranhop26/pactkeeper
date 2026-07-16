@@ -11,8 +11,8 @@ To settle a pact, the user submits an evidence URL. The contract programmaticall
 
 ## Canonical Deployment Details
 
-- **Official Contract Address**: [`0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57`](https://studio.genlayer.com/contracts/0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57)
-- **Explorer Link**: [PactKeeper on GenLayer Studionet Explorer](https://explorer.studio.genlayer.com/contracts/0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57)
+- **Official Contract Address**: [`0xC978Bbc3B7f16dd0bF629005F60FeD5E49a83cC1`](https://studio.genlayer.com/contracts/0xC978Bbc3B7f16dd0bF629005F60FeD5E49a83cC1)
+- **Explorer Link**: [PactKeeper on GenLayer Studionet Explorer](https://explorer.studio.genlayer.com/contracts/0xC978Bbc3B7f16dd0bF629005F60FeD5E49a83cC1)
 - **Vercel Live App**: [https://pactkeeper-lac.vercel.app](https://pactkeeper-lac.vercel.app)
 - **Network**: GenLayer Studionet (Chain ID: `61999`)
 
@@ -47,23 +47,23 @@ Here are the transaction hashes showing a completed end-to-end execution of a pa
 
 1. **Pact Creation & Staking (0.1 GEN Locked)**
    - **Method**: `create_pact`
-   - **Transaction Hash**: [`0x5ea0fad41817639f3f62966be3d6e1408c13965096b048c59fbf11adc829eba0`](https://explorer.studio.genlayer.com/tx/0x5ea0fad41817639f3f62966be3d6e1408c13965096b048c59fbf11adc829eba0)
+   - **Transaction Hash**: [`0x233cb5fc312797437b418637ee52d3aa808d79ae20e6e71a611bdf4868ba7423`](https://explorer.studio.genlayer.com/tx/0x233cb5fc312797437b418637ee52d3aa808d79ae20e6e71a611bdf4868ba7423)
    - **Status**: `ACCEPTED` / `MAJORITY_AGREE`
 
 2. **Submit Evidence**
    - **Method**: `submit_evidence`
-   - **Transaction Hash**: [`0x41ee24476ed373b27187fed9ed7ea81712e551925d3652541e9f6dbbbec20fe3`](https://explorer.studio.genlayer.com/tx/0x41ee24476ed373b27187fed9ed7ea81712e551925d3652541e9f6dbbbec20fe3)
+   - **Transaction Hash**: [`0xd9a657611d28fdd3b08b251171ae7993e1c110058d50087aa08e7788f163483b`](https://explorer.studio.genlayer.com/tx/0xd9a657611d28fdd3b08b251171ae7993e1c110058d50087aa08e7788f163483b)
    - **Status**: `ACCEPTED` / `MAJORITY_AGREE`
 
 3. **AI Oracle Judgment & Consensus**
    - **Method**: `settle`
-   - **Transaction Hash**: [`0xce1b137e9b68fcf029c27463cf3a125bf0618d171498b2dcd84e2df2ffe3c4b7`](https://explorer.studio.genlayer.com/tx/0xce1b137e9b68fcf029c27463cf3a125bf0618d171498b2dcd84e2df2ffe3c4b7)
+   - **Transaction Hash**: [`0x35a98ac7241c3ae57bb9d64537a9fa09b0700d7956538704dea5c35d7d43f4bf`](https://explorer.studio.genlayer.com/tx/0x35a98ac7241c3ae57bb9d64537a9fa09b0700d7956538704dea5c35d7d43f4bf)
    - **Consensus Result**: `ACCEPTED` / `MAJORITY_AGREE`
-   - **Verdict**: `BROKEN` (with 95 confidence) because the submitted URL (the README) did not provide visual proof of the React frontend as promised.
+   - **Verdict**: `BROKEN` (with 85 confidence) because the submitted URL (the README) did not provide visual proof of the React frontend as promised.
 
 4. **Withdraw Payout to Beneficiary**
    - **Method**: `withdraw`
-   - **Transaction Hash**: [`0x8530bf8865c933589922f2deb48fffd0cb913da58552454565594cb4dea1a3aa`](https://explorer.studio.genlayer.com/tx/0x8530bf8865c933589922f2deb48fffd0cb913da58552454565594cb4dea1a3aa)
+   - **Transaction Hash**: [`0x874dd2099d869ed7c5034a79048e6b10b9a3620053ea341fa2289332740bc5ae`](https://explorer.studio.genlayer.com/tx/0x874dd2099d869ed7c5034a79048e6b10b9a3620053ea341fa2289332740bc5ae)
    - **Status**: `ACCEPTED` / `MAJORITY_AGREE` (0.1 GEN transfer to the beneficiary wallet `0x70997970C51812dc3A010C7d01b50e0d17dc79C8` successfully completed).
 
 ---

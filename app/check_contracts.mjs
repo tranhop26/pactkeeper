@@ -4,7 +4,7 @@ import { createClient, chains } from 'genlayer-js';
 const client = createClient({ chain: chains.studionet });
 
 const CONTRACTS = {
-  PactKeeper:  '0x99e177Bd513C171FCAF07DD5e7E39C8AF5bb0e57',
+  PactKeeper:  '0xC978Bbc3B7f16dd0bF629005F60FeD5E49a83cC1',
   TruthMarket: '0x0ba8A1f3A816236237CE4d2a9FE1633a00dd81bD',
   CredChain:   '0x9DCED4d359A2969EA094c5DF674e01f3AB309CBf',
 };
