@@ -4,6 +4,35 @@ import datetime
 import sys
 from pathlib import Path
 
+
+# Monkeypatch gltest.direct.sdk_loader.get_latest_version to return v0.2.16.
+# This prevents the test runner from querying GitHub for the latest release (v0.3.0-rc7),
+# which contains incompatible runner asset names ("genvm-runners-all.tar.xz" instead of "genvm-universal.tar.xz"),
+# causing a 404 download error on clean environments (like CI/GitHub Actions).
+try:
+    import gltest.direct.sdk_loader as sdk_loader
+    sdk_loader.get_latest_version = lambda: "v0.2.16"
+except ImportError:
+    pass
+
+# Monkeypatch gltest.direct.loader._inject_message_to_fd0 to ignore PermissionError on Windows.
+# On Windows, fd 0 (stdin) is still open and pointing to the temp file during os.unlink,
+# causing a sharing violation (PermissionError).
+try:
+    import gltest.direct.loader as loader
+    original_inject = loader._inject_message_to_fd0
+    def patched_inject(vm):
+        try:
+            original_inject(vm)
+        except PermissionError:
+            pass
+    loader._inject_message_to_fd0 = patched_inject
+except ImportError:
+    pass
+
+
+
+
 class ContractWrapper:
     def __init__(self, instance, direct_vm):
         self._instance = instance
@@ -56,6 +85,10 @@ class ContractWrapper:
                                             value=u256(self._direct_vm.value),
                                             chain_id=u256(self._direct_vm._chain_id),
                                         )
+                                    if hasattr(cached_gl, 'message_raw') and cached_gl.message_raw is not None:
+                                        cached_gl.message_raw['sender_address'] = sender_addr
+                                        cached_gl.message_raw['origin_address'] = origin_addr
+                                        cached_gl.message_raw['datetime'] = self._direct_vm._datetime
                                 except Exception:
                                     pass
                 
@@ -108,6 +141,13 @@ class GenLayerTestWrapper:
     def deploy(self, contract_path, args=None):
         if args is None:
             args = []
+        
+        # Evict any existing genlayer modules from sys.modules to force loading from the SDK paths
+        import sys
+        for key in list(sys.modules.keys()):
+            if key == 'genlayer' or key.startswith('genlayer.'):
+                sys.modules.pop(key, None)
+                
         inst = self._direct_deploy(contract_path, *args)
         wrapper = ContractWrapper(inst, self._direct_vm)
         self._contract_registry[str(inst.address)] = wrapper
